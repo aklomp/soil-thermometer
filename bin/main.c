@@ -6,6 +6,7 @@
 
 #include "led.h"
 #include "uart.h"
+#include "wifi.h"
 
 // Function prototypes missing in SDK:
 extern int os_printf_plus (const char *format, ...) __attribute__ ((format (printf, 1, 2)));
@@ -57,6 +58,9 @@ on_init_done (void)
 	system_print_meminfo();
 
 	led_blink(150);
+
+	if (!wifi_connect())
+		os_printf("Wifi connect failed!\n");
 }
 
 // Entry point at system init
