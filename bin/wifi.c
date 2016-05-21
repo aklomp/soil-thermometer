@@ -1,11 +1,8 @@
 #include <osapi.h>
 #include <user_interface.h>
 
+#include "missing.h"
 #include "secrets.h"
-
-// Function prototypes missing in SDK:
-extern int os_printf_plus (const char *format, ...) __attribute__ ((format (printf, 1, 2)));
-extern void *ets_memcpy (void *dest, const void *src, size_t n);
 
 // Wifi event handler for connect
 static void ICACHE_FLASH_ATTR

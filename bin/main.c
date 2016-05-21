@@ -5,12 +5,9 @@
 #include <gpio.h>
 
 #include "led.h"
+#include "missing.h"
 #include "uart.h"
 #include "wifi.h"
-
-// Function prototypes missing in SDK:
-extern int os_printf_plus (const char *format, ...) __attribute__ ((format (printf, 1, 2)));
-extern uint16_t readvdd33 (void);
 
 #define NUM_EVENTS	4
 

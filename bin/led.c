@@ -3,10 +3,7 @@
 #include <osapi.h>
 #include <gpio.h>
 
-// Function prototypes missing in SDK:
-extern void ets_timer_arm_new (os_timer_t *, uint32_t, uint32_t, uint32_t);
-extern void ets_timer_disarm (os_timer_t *);
-extern void ets_timer_setfn (os_timer_t *, ETSTimerFunc *, void *);
+#include "missing.h"
 
 // The onboard LED is at pin 2:
 #define PIN_LED 2
