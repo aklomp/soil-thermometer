@@ -4,7 +4,10 @@ extern int ets_sprintf(char *str, const char *format, ...)  __attribute__ ((form
 extern void ets_timer_arm_new (os_timer_t *, uint32_t, uint32_t, uint32_t);
 extern void ets_timer_disarm (os_timer_t *);
 extern void ets_timer_setfn (os_timer_t *, ETSTimerFunc *, void *);
+extern void ets_delay_us (uint32_t ms);
 extern void *ets_memcpy (void *dest, const void *src, size_t n);
+extern void ets_intr_lock (void);
+extern void ets_intr_unlock (void);
 extern void *pvPortMalloc (size_t, char *, int);
 extern void vPortFree (void *, char *, int);
 extern uint16_t readvdd33 (void);

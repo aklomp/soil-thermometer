@@ -8,6 +8,7 @@
 #include "led.h"
 #include "missing.h"
 #include "net.h"
+#include "onewire.h"
 #include "state.h"
 #include "uart.h"
 #include "wifi.h"
@@ -189,6 +190,7 @@ user_init (void)
 
 	gpio_init();
 	uart_init();
+	onewire_init();
 
 	// Call this function after system init is complete:
 	system_init_done_cb(on_init_done);
