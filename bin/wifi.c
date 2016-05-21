@@ -5,6 +5,9 @@
 #include "secrets.h"
 #include "state.h"
 
+// Remember connection events:
+static bool is_connected = false;
+
 // Wifi event handler for connect
 static void ICACHE_FLASH_ATTR
 on_connect_event (System_Event_t *event)
@@ -14,6 +17,7 @@ on_connect_event (System_Event_t *event)
 	case EVENT_STAMODE_CONNECTED:
 		os_printf("Wifi: connected\n");
 		os_printf("RSSI: %d\n", wifi_station_get_rssi());
+		is_connected = true;
 		break;
 
 	case EVENT_STAMODE_DISCONNECTED:
@@ -31,6 +35,7 @@ on_connect_event (System_Event_t *event)
 			os_printf("Wifi connect: disconnected\n");
 			break;
 		}
+		is_connected = false;
 		state_change(STATE_WIFI_SETUP_FAIL);
 		break;
 
@@ -111,4 +116,49 @@ wifi_connect (void)
 	wifi_station_set_reconnect_policy(false);
 
 	return connect();
+}
+
+// Wifi event handler for disconnect:
+static void ICACHE_FLASH_ATTR
+on_disconnect_event (System_Event_t *event)
+{
+	if (event->event != EVENT_STAMODE_DISCONNECTED) {
+		os_printf("Wifi disconnect: unhandled event 0x%x\n", event->event);
+		return;
+	}
+
+	os_printf("Wifi disconnect: disconnected\n");
+
+	// Stop RF engine, hopefully:
+	set_opmode(NULL_MODE);
+
+	// Set sleep mode:
+	if (!wifi_set_sleep_type(MODEM_SLEEP_T))
+		os_printf("Wifi: couldn't set modem sleep mode!\n");
+
+	// Signal state change:
+	state_change(STATE_WIFI_SHUTDOWN_DONE);
+}
+
+// Tear down a wifi connection and sleep the modem
+bool ICACHE_FLASH_ATTR
+wifi_shutdown (void)
+{
+	// If the interface never connected during setup, we cannot disconnect
+	// it. (The function will hang.) In that case, just call our callback
+	// directly:
+	if (!is_connected) {
+		System_Event_t event = { .event = EVENT_STAMODE_DISCONNECTED };
+		on_disconnect_event(&event);
+		return true;
+	}
+
+	// Register a callback for when we've disconnected:
+	wifi_set_event_handler_cb(on_disconnect_event);
+
+	if (wifi_station_disconnect())
+		return true;
+
+	os_printf("Wifi: couldn't disconnect!\n");
+	return false;
 }

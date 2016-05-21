@@ -2,6 +2,7 @@ enum state {
 	STATE_WIFI_SETUP_START,
 	STATE_WIFI_SETUP_FAIL,
 	STATE_WIFI_SETUP_DONE,
+	STATE_WIFI_SHUTDOWN_DONE,
 };
 
 void state_change (enum state);

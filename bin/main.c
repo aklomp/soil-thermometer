@@ -29,12 +29,21 @@ on_event (os_event_t *event)
 	case STATE_WIFI_SETUP_FAIL:
 		led_blink(500);
 		os_printf("Wifi setup failed!\n");
+		if (!wifi_shutdown())
+			state_change(STATE_WIFI_SHUTDOWN_DONE);
 		break;
 
 	// Wifi is successfully setup:
 	case STATE_WIFI_SETUP_DONE:
 		led_blink(200);
 		os_printf("Wifi setup done\n");
+		if (!wifi_shutdown())
+			state_change(STATE_WIFI_SHUTDOWN_DONE);
+		break;
+
+	// Wifi has been successfully shut down:
+	case STATE_WIFI_SHUTDOWN_DONE:
+		os_printf("Wifi shutdown done\n");
 		break;
 
 	default:
