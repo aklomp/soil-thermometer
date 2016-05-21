@@ -3,6 +3,7 @@
 
 #include "missing.h"
 #include "secrets.h"
+#include "state.h"
 
 // Wifi event handler for connect
 static void ICACHE_FLASH_ATTR
@@ -30,6 +31,7 @@ on_connect_event (System_Event_t *event)
 			os_printf("Wifi connect: disconnected\n");
 			break;
 		}
+		state_change(STATE_WIFI_SETUP_FAIL);
 		break;
 
 	case EVENT_STAMODE_AUTHMODE_CHANGE:
@@ -38,10 +40,12 @@ on_connect_event (System_Event_t *event)
 
 	case EVENT_STAMODE_GOT_IP:
 		os_printf("Wifi connect: got IP\n");
+		state_change(STATE_WIFI_SETUP_DONE);
 		break;
 
 	case EVENT_STAMODE_DHCP_TIMEOUT:
 		os_printf("Wifi connect: DHCP timeout\n");
+		state_change(STATE_WIFI_SETUP_FAIL);
 		break;
 
 	default:
@@ -103,6 +107,7 @@ wifi_connect (void)
 	wifi_set_event_handler_cb(on_connect_event);
 
 	// Don't reconnect automatically:
+	wifi_station_set_auto_connect(0);
 	wifi_station_set_reconnect_policy(false);
 
 	return connect();

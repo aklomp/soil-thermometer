@@ -6,6 +6,7 @@
 
 #include "led.h"
 #include "missing.h"
+#include "state.h"
 #include "uart.h"
 #include "wifi.h"
 
@@ -15,7 +16,31 @@
 static void ICACHE_FLASH_ATTR
 on_event (os_event_t *event)
 {
-	os_printf("Got event: 0x%08x, payload 0x%08x\n", event->sig, event->par);
+	switch (event->sig)
+	{
+	// Start setting up wifi:
+	case STATE_WIFI_SETUP_START:
+		led_blink(100);
+		if (!wifi_connect())
+			state_change(STATE_WIFI_SETUP_FAIL);
+		break;
+
+	// Wifi setup or connect failed:
+	case STATE_WIFI_SETUP_FAIL:
+		led_blink(500);
+		os_printf("Wifi setup failed!\n");
+		break;
+
+	// Wifi is successfully setup:
+	case STATE_WIFI_SETUP_DONE:
+		led_blink(200);
+		os_printf("Wifi setup done\n");
+		break;
+
+	default:
+		os_printf("Unhandled event: 0x%08x, payload 0x%08x\n", event->sig, event->par);
+		break;
+	}
 }
 
 // Entry point after system init
@@ -54,10 +79,8 @@ on_init_done (void)
 
 	system_print_meminfo();
 
-	led_blink(150);
-
-	if (!wifi_connect())
-		os_printf("Wifi connect failed!\n");
+	// Start setting up wifi:
+	state_change(STATE_WIFI_SETUP_START);
 }
 
 // Entry point at system init
