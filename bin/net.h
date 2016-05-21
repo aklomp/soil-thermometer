@@ -3,4 +3,4 @@
 
 bool net_connect (void);
 bool net_disconnect (void);
-bool net_send (uint8_t *buf);
+bool net_send (uint8_t *buf, size_t len);

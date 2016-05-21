@@ -155,8 +155,11 @@ net_disconnect (void)
 
 // Send data after connecting
 bool ICACHE_FLASH_ATTR
-net_send (uint8_t *buf)
+net_send (uint8_t *buf, size_t len)
 {
+	if (!buf || !len)
+		return false;
+
 	os_printf(buf);
-	return check_error("espconn_send()", espconn_send(&conn, buf, strlen(buf)));
+	return check_error("espconn_send()", espconn_send(&conn, buf, len));
 }

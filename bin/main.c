@@ -100,11 +100,15 @@ net_event (os_event_t *event)
 		return true;
 
 	// Network connection successfully setup:
-	case STATE_NET_CONNECT_DONE:
+	case STATE_NET_CONNECT_DONE: {
+		size_t len;
+		char *buf = http_post_create(&len);
+
 		os_printf("Network connect done\n");
-		if (!net_send(http_post_create()))
+		if (!net_send(buf, len))
 			state_change(STATE_NET_DATA_SENT);
 		return true;
+	}
 
 	// Network data sent:
 	case STATE_NET_DATA_SENT:
