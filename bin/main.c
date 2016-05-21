@@ -6,6 +6,7 @@
 
 #include "led.h"
 #include "missing.h"
+#include "net.h"
 #include "state.h"
 #include "uart.h"
 #include "wifi.h"
@@ -26,9 +27,9 @@ deep_sleep (void)
 	system_deep_sleep(DEEP_SLEEP_USEC);
 }
 
-// System event handler
-static void ICACHE_FLASH_ATTR
-on_event (os_event_t *event)
+// Wifi event handler
+static bool ICACHE_FLASH_ATTR
+wifi_event (os_event_t *event)
 {
 	static uint8_t round = 0;
 
@@ -39,7 +40,7 @@ on_event (os_event_t *event)
 		led_blink(100);
 		if (!wifi_connect())
 			state_change(STATE_WIFI_SETUP_FAIL);
-		break;
+		return true;
 
 	// Wifi setup or connect failed:
 	case STATE_WIFI_SETUP_FAIL:
@@ -51,26 +52,81 @@ on_event (os_event_t *event)
 		}
 		else if (!wifi_shutdown())
 			state_change(STATE_WIFI_SHUTDOWN_DONE);
-		break;
+		return true;
 
 	// Wifi is successfully setup:
 	case STATE_WIFI_SETUP_DONE:
-		led_blink(200);
 		os_printf("Wifi setup done\n");
+		state_change(STATE_NET_CONNECT_START);
+		return true;
+
+	// Start shutting down wifi:
+	case STATE_WIFI_SHUTDOWN_START:
+		os_printf("Wifi shutdown starting\n");
 		if (!wifi_shutdown())
 			state_change(STATE_WIFI_SHUTDOWN_DONE);
-		break;
+		return true;
 
 	// Wifi has been successfully shut down:
 	case STATE_WIFI_SHUTDOWN_DONE:
 		os_printf("Wifi shutdown done\n");
 		deep_sleep();
-		break;
+		return true;
 
 	default:
-		os_printf("Unhandled event: 0x%08x, payload 0x%08x\n", event->sig, event->par);
-		break;
+		return false;
 	}
+}
+
+// Network event handler
+static bool ICACHE_FLASH_ATTR
+net_event (os_event_t *event)
+{
+	switch (event->sig)
+	{
+	// Start setting up network connection:
+	case STATE_NET_CONNECT_START:
+		led_blink(200);
+		if (!net_connect())
+			state_change(STATE_NET_CONNECT_FAIL);
+		return true;
+
+	// Network connection setup failed:
+	case STATE_NET_CONNECT_FAIL:
+		os_printf("Network connect failed!\n");
+		if (!net_disconnect())
+			state_change(STATE_NET_DISCONNECT_DONE);
+		return true;
+
+	// Network connection successfully setup:
+	case STATE_NET_CONNECT_DONE:
+		os_printf("Network connect done\n");
+		if (!net_disconnect())
+			state_change(STATE_NET_DISCONNECT_DONE);
+		return true;
+
+	// Network successfully disconnected:
+	case STATE_NET_DISCONNECT_DONE:
+		os_printf("Network disconnect done\n");
+		state_change(STATE_WIFI_SHUTDOWN_START);
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+// System event handler
+static void ICACHE_FLASH_ATTR
+on_event (os_event_t *event)
+{
+	if (wifi_event(event))
+		return;
+
+	if (net_event(event))
+		return;
+
+	os_printf("Unhandled event: 0x%08x, payload 0x%08x\n", event->sig, event->par);
 }
 
 // Entry point after system init
