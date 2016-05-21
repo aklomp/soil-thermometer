@@ -11,6 +11,20 @@
 #include "wifi.h"
 
 #define NUM_EVENTS	4
+#define DEEP_SLEEP_SEC	900UL
+#define DEEP_SLEEP_USEC	(DEEP_SLEEP_SEC * 1000000UL)
+
+static void ICACHE_FLASH_ATTR
+deep_sleep (void)
+{
+	// Don't remember RF config across deep sleep:
+	if (!system_deep_sleep_set_option(2))
+		os_printf("Deep sleep: couldn't set option!\n");
+
+	// Enter deep sleep:
+	os_printf("Deep sleep: starting for %u sec\n", DEEP_SLEEP_SEC);
+	system_deep_sleep(DEEP_SLEEP_USEC);
+}
 
 // System event handler
 static void ICACHE_FLASH_ATTR
@@ -50,6 +64,7 @@ on_event (os_event_t *event)
 	// Wifi has been successfully shut down:
 	case STATE_WIFI_SHUTDOWN_DONE:
 		os_printf("Wifi shutdown done\n");
+		deep_sleep();
 		break;
 
 	default:
