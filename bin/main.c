@@ -4,6 +4,7 @@
 #include <user_interface.h>
 #include <gpio.h>
 
+#include "http.h"
 #include "led.h"
 #include "missing.h"
 #include "net.h"
@@ -101,8 +102,15 @@ net_event (os_event_t *event)
 	// Network connection successfully setup:
 	case STATE_NET_CONNECT_DONE:
 		os_printf("Network connect done\n");
-		if (!net_disconnect())
-			state_change(STATE_NET_DISCONNECT_DONE);
+		if (!net_send(http_post_create()))
+			state_change(STATE_NET_DATA_SENT);
+		return true;
+
+	// Network data sent:
+	case STATE_NET_DATA_SENT:
+		os_printf("Network data sent\n");
+		http_post_destroy();
+		net_disconnect();
 		return true;
 
 	// Network successfully disconnected:

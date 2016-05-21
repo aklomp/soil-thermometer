@@ -60,6 +60,14 @@ on_reconnect (void *data, int8_t error)
 	state_change(STATE_NET_CONNECT_FAIL);
 }
 
+// Write finished callback
+static void ICACHE_FLASH_ATTR
+on_write_finish (void *data)
+{
+	os_printf("Net: write finished\n");
+	state_change(STATE_NET_DATA_SENT);
+}
+
 // Disconnect callback
 static void ICACHE_FLASH_ATTR
 on_disconnect (void *data)
@@ -105,7 +113,7 @@ static esp_tcp tcp = {
 	.connect_callback	= on_connect,
 	.reconnect_callback	= on_reconnect,
 	.disconnect_callback	= on_disconnect,
-	.write_finish_fn	= NULL,
+	.write_finish_fn	= on_write_finish,
 };
 
 static struct espconn conn = {
@@ -143,4 +151,12 @@ net_disconnect (void)
 	}
 
 	return check_error("espconn_disconnect()", espconn_disconnect(&conn));
+}
+
+// Send data after connecting
+bool ICACHE_FLASH_ATTR
+net_send (uint8_t *buf)
+{
+	os_printf(buf);
+	return check_error("espconn_send()", espconn_send(&conn, buf, strlen(buf)));
 }
