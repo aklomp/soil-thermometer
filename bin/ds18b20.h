@@ -11,3 +11,4 @@ enum ds18b20_status {
 
 enum ds18b20_status ds18b20_request (const uint8_t *addr);
 enum ds18b20_status ds18b20_result  (const uint8_t *addr, int32_t *celsius);
+const char *ds18b20_status_string   (const enum ds18b20_status);

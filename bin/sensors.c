@@ -30,6 +30,44 @@ static const uint8_t sensors[][8] = {
 // Sample table:
 static struct sample samples[SENSORS_ROUNDS_MAX][NSENSORS];
 
+// Print sensor data in JSON format
+size_t ICACHE_FLASH_ATTR
+sensors_json (char *buf)
+{
+	char *p = buf;
+	bool first = true;
+
+	/* Create the following JSON structure:
+
+		"sensors" : {
+		  "sensor-id-0" : { "value" : "230000", "status" : "message" }
+		, "sensor-id-1" : { "value" : "230000", "status" : "message" }
+		}
+	*/
+
+	p += os_sprintf(p, "\"sensors\" : {\n");
+
+	for (size_t sensor = 0; sensor < NSENSORS; sensor++) {
+		const uint8_t *a = sensors[sensor];
+
+		p += os_sprintf(p,
+			"%s \"%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\" : ",
+			(first) ? " " : ",",
+			a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7]);
+
+		p += os_sprintf(p,
+			"{ \"value\": \"%d\", \"status\" : \"%s\" }\n",
+			samples[0][sensor].celsius,
+			ds18b20_status_string(samples[0][sensor].status));
+
+		first = false;
+	}
+
+	p += os_sprintf(p, "}");
+
+	return p - buf;
+}
+
 // Called when the temperature conversion is done
 static void ICACHE_FLASH_ATTR
 on_timer (void *data)

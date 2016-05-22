@@ -4,6 +4,7 @@
 
 #include "http.h"
 #include "missing.h"
+#include "sensors.h"
 
 #define HEAD_SIZE	100
 #define BODY_SIZE	1000
@@ -50,7 +51,21 @@ header_create (char *head, size_t body_len)
 static size_t ICACHE_FLASH_ATTR
 body_create (char *body)
 {
-	return os_sprintf(body, "Hello, world!\n");
+	char *p = body;
+
+	/* Create a JSON body with the following structure:
+
+		{ "sensors" : {
+		  "sensor-id-0" : { "value" : "230000", "status" : "message" }
+		, "sensor-id-1" : { "value" : "230000", "status" : "message" }
+		} }
+	*/
+
+	p += os_sprintf(p, "{ ");
+	p += sensors_json(p);
+	p += os_sprintf(p, " }\n");
+
+	return p - body;
 }
 
 // Create a HTTP POST message
