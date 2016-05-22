@@ -1,4 +1,4 @@
-#define SENSORS_RECORDS_MAX	4
+#define SENSORS_RECORDS_MAX	1
 #define SENSORS_ROUNDS_MAX	3
 
 void sensors_request (const size_t round);
