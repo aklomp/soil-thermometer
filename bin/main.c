@@ -4,11 +4,13 @@
 #include <user_interface.h>
 #include <gpio.h>
 
+#include "ds18b20.h"
 #include "http.h"
 #include "led.h"
 #include "missing.h"
 #include "net.h"
 #include "onewire.h"
+#include "sensors.h"
 #include "state.h"
 #include "uart.h"
 #include "wifi.h"
@@ -27,6 +29,49 @@ deep_sleep (void)
 	// Enter deep sleep:
 	os_printf("Deep sleep: starting for %u sec\n", DEEP_SLEEP_SEC);
 	system_deep_sleep(DEEP_SLEEP_USEC);
+}
+
+// Sensor event handler
+static bool ICACHE_FLASH_ATTR
+sensor_event (os_event_t *event)
+{
+	static uint8_t round = 0;
+
+	switch (event->sig)
+	{
+	// Request sensor measurements:
+	case STATE_SENSORS_START:
+		led_blink(50);
+		os_printf("Requesting sensor measurements\n");
+		sensors_request(round);
+		return true;
+
+	// Obtain sensor measurements:
+	case STATE_SENSORS_READOUT:
+		sensors_readout(round);
+		state_change(STATE_SENSORS_DONE);
+		return true;
+
+	// Sensor measurements obtained:
+	case STATE_SENSORS_DONE:
+		os_printf("Sensor measurements obtained\n");
+
+		// If we don't have valid measurements for each sensor, retry:
+		if (!sensors_all_valid() && ++round < SENSORS_ROUNDS_MAX) {
+			os_printf("Retrying measurements (%d)\n", round);
+			state_change(STATE_SENSORS_START);
+			return true;
+		}
+
+		// Otherwise consolidate the measurements and move on:
+		onewire_depower();
+		sensors_consolidate_samples();
+		state_change(STATE_WIFI_SETUP_START);
+		return true;
+
+	default:
+		return false;
+	}
 }
 
 // Wifi event handler
@@ -133,6 +178,9 @@ net_event (os_event_t *event)
 static void ICACHE_FLASH_ATTR
 on_event (os_event_t *event)
 {
+	if (sensor_event(event))
+		return;
+
 	if (wifi_event(event))
 		return;
 
@@ -178,8 +226,8 @@ on_init_done (void)
 
 	system_print_meminfo();
 
-	// Start setting up wifi:
-	state_change(STATE_WIFI_SETUP_START);
+	// Start by getting sensor measurements:
+	state_change(STATE_SENSORS_START);
 }
 
 // Entry point at system init
