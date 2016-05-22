@@ -16,6 +16,8 @@
 static void ICACHE_FLASH_ATTR
 on_event (os_event_t *event)
 {
+	static uint8_t round = 0;
+
 	switch (event->sig)
 	{
 	// Start setting up wifi:
@@ -29,7 +31,11 @@ on_event (os_event_t *event)
 	case STATE_WIFI_SETUP_FAIL:
 		led_blink(500);
 		os_printf("Wifi setup failed!\n");
-		if (!wifi_shutdown())
+		if (round++ < 3) {
+			os_printf("Wifi: retrying (%u)\n", round);
+			state_change(STATE_WIFI_SETUP_START);
+		}
+		else if (!wifi_shutdown())
 			state_change(STATE_WIFI_SHUTDOWN_DONE);
 		break;
 
