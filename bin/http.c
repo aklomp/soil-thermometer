@@ -1,6 +1,7 @@
 #include <ets_sys.h>
 #include <os_type.h>
 #include <mem.h>
+#include <user_interface.h>
 
 #include "http.h"
 #include "missing.h"
@@ -58,12 +59,17 @@ body_create (char *body)
 		{ "sensors" : {
 		  "sensor-id-0" : { "value" : "230000", "status" : "message" }
 		, "sensor-id-1" : { "value" : "230000", "status" : "message" }
-		} }
+		}
+		, "millivolt" : "value"
+		, "rssi" : "value"
+		}
 	*/
 
 	p += os_sprintf(p, "{ ");
 	p += sensors_json(p);
-	p += os_sprintf(p, " }\n");
+	p += os_sprintf(p, "\n, \"millivolt\" : \"%u\"", (readvdd33() * 1000) / 1024);
+	p += os_sprintf(p, "\n, \"rssi\" : \"%d\"", wifi_station_get_rssi());
+	p += os_sprintf(p, "\n}\n");
 
 	return p - body;
 }
