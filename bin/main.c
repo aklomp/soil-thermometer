@@ -10,6 +10,7 @@
 #include "missing.h"
 #include "net.h"
 #include "onewire.h"
+#include "rtc_mem.h"
 #include "sensors.h"
 #include "state.h"
 #include "uart.h"
@@ -18,6 +19,12 @@
 #define NUM_EVENTS	4
 #define DEEP_SLEEP_SEC	900UL
 #define DEEP_SLEEP_USEC	(DEEP_SLEEP_SEC * 1000000UL)
+
+// We wake up every 15 minutes, take temperature samples, and go to deep sleep.
+// Every hour, we collect and consolidate the 15-minute samples into one final
+// measurement that we send over wifi. We store our state inside the RTC clock
+// memory, so we know at which step we are. Wakeup number:
+static uint8_t wakeup;
 
 static void ICACHE_FLASH_ATTR
 deep_sleep (void)
@@ -65,7 +72,35 @@ sensor_event (os_event_t *event)
 
 		// Otherwise consolidate the measurements and move on:
 		onewire_depower();
-		sensors_consolidate_samples();
+		sensors_consolidate_samples(wakeup);
+
+		// If this is wakeup round 0, 1 or 2, then store the data to
+		// RTC memory and go to sleep:
+		if (wakeup < SENSORS_RECORDS_MAX - 1) {
+			state_change(STATE_SENSORS_SAVE);
+			return true;
+		}
+
+		// Otherwise, send the data:
+		state_change(STATE_SENSORS_SEND);
+		return true;
+
+	// Save measurements to RTC memory and go to sleep:
+	case STATE_SENSORS_SAVE:
+		os_printf("Saving measurements to RTC memory: %s\n",
+			rtc_mem_save(wakeup + 1) ? "success" : "fail");
+		deep_sleep();
+		return true;
+
+	// Consolidate measurements and send over wifi:
+	case STATE_SENSORS_SEND:
+		os_printf("Sending measurements to wifi\n");
+
+		// Reset RTC memory to zero records:
+		rtc_mem_save(0);
+
+		// Consolidate records and send to wifi:
+		sensors_consolidate_records();
 		state_change(STATE_WIFI_SETUP_START);
 		return true;
 
@@ -225,6 +260,14 @@ on_init_done (void)
 	os_printf("Reset info     : %s\n", reset_map[reset_info->reason]);
 
 	system_print_meminfo();
+
+	// If we were reset by awaking from deep sleep, we read out RTC memory
+	// to import information from earlier rounds. Find out which wakeup
+	// round this is:
+	if (reset_info->reason == REASON_DEEP_SLEEP_AWAKE) {
+		wakeup = rtc_mem_load();
+		os_printf("Wakeup %u\n", wakeup);
+	}
 
 	// Start by getting sensor measurements:
 	state_change(STATE_SENSORS_START);

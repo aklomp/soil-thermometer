@@ -27,8 +27,32 @@ static const uint8_t sensors[][8] = {
 // Size of sensor table:
 #define NSENSORS	sizeof(sensors) / sizeof(sensors[0])
 
+// What we want to do in this project is to wake up every 15 minutes, take a
+// sample, retry the sample-taking a certain amount of times if we didn't get
+// valid samples from all sensors, and consolidate the data into a record. Save
+// this record to RTC memory, then go into deep sleep.
+// Once every four wakeups (i.e. once an hour), take all records, consolidate
+// them into a per-sensor hourly average, and push those over wifi.
+
 // Sample table:
 static struct sample samples[SENSORS_ROUNDS_MAX][NSENSORS];
+
+// Consolidated sensor records:
+static struct sample records[SENSORS_RECORDS_MAX][NSENSORS];
+
+// Get size of one record (containing one sample round for all sensors)
+uint8_t ICACHE_FLASH_ATTR
+sensors_record_size (void)
+{
+	return sizeof(records[0]);
+}
+
+// Get a record
+void * ICACHE_FLASH_ATTR
+sensors_record_data (const uint8_t n)
+{
+	return records[n];
+}
 
 // Print sensor data in JSON format
 size_t ICACHE_FLASH_ATTR
@@ -57,8 +81,8 @@ sensors_json (char *buf)
 
 		p += os_sprintf(p,
 			"{ \"value\": \"%d\", \"status\" : \"%s\" }\n",
-			samples[0][sensor].celsius,
-			ds18b20_status_string(samples[0][sensor].status));
+			records[0][sensor].celsius,
+			ds18b20_status_string(records[0][sensor].status));
 
 		first = false;
 	}
@@ -114,13 +138,22 @@ consolidate (struct sample samples[][NSENSORS], size_t nrounds, size_t sensor, s
 	dest->status  = max_status;
 }
 
-// Consolidate all sensors
+// Consolidate multiple records into one record per sensor
 void ICACHE_FLASH_ATTR
-sensors_consolidate_samples (void)
+sensors_consolidate_records (void)
 {
-	// Save average temperature and status into sample #0:
+	// Save average temperature and status into record #0:
 	for (size_t sensor = 0; sensor < NSENSORS; sensor++)
-		consolidate(samples, SENSORS_ROUNDS_MAX, sensor, &samples[0][sensor]);
+		consolidate(records, SENSORS_RECORDS_MAX, sensor, &records[0][sensor]);
+}
+
+// Consolidate all sensors into destination record
+void ICACHE_FLASH_ATTR
+sensors_consolidate_samples (const size_t record)
+{
+	// Save average temperature and status into current record:
+	for (size_t sensor = 0; sensor < NSENSORS; sensor++)
+		consolidate(samples, SENSORS_ROUNDS_MAX, sensor, &records[record][sensor]);
 }
 
 // Check if sensor has at least one valid sample
