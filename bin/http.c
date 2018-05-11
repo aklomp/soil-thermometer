@@ -62,6 +62,7 @@ body_create (char *body)
 		}
 		, "millivolt" : "value"
 		, "rssi" : "value"
+		, "adc" : "value"
 		}
 	*/
 
@@ -69,6 +70,7 @@ body_create (char *body)
 	p += sensors_json(p);
 	p += os_sprintf(p, "\n, \"millivolt\" : \"%u\"", (readvdd33() * 1000) / 1024);
 	p += os_sprintf(p, "\n, \"rssi\" : \"%d\"", wifi_station_get_rssi());
+	p += os_sprintf(p, "\n, \"adc\" : \"%d\"", system_adc_read());
 	p += os_sprintf(p, "\n}\n");
 
 	return p - body;
