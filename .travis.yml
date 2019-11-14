@@ -10,7 +10,7 @@ addons:
 
 before_script:
   - git clone --recursive https://github.com/pfalcon/esp-open-sdk.git &&
-    ( cd esp-open-sdk && make )
+    ( cd esp-open-sdk && make || cat /home/travis/build/aklomp/soil-thermometer/esp-open-sdk/lx106-hal/config.log; ls -al /home/travis/build/aklomp/soil-thermometer/esp-open-sdk/xtensa-lx106-elf/bin )
 
 env:
   - SDK_BASE="${TRAVIS_BUILD_DIR}/esp-open-sdk/sdk"
