@@ -1,1 +1,20 @@
 language: c
+
+addons:
+  apt:
+    packages:
+      - gperf
+      - help2man
+      - libtool-bin
+      - texinfo
+
+before_script:
+  - git clone --recursive https://github.com/pfalcon/esp-open-sdk.git &&
+    ( cd esp-open-sdk && make )
+
+env:
+  - SDK_BASE="${TRAVIS_BUILD_DIR}/esp-open-sdk/sdk"
+    XTENSA_TOOLS_ROOT="${TRAVIS_BUILD_DIR}/esp-open-sdk/xtensa-lx106-elf/bin"
+
+script:
+  - make
