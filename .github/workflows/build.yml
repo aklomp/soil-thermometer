@@ -1,0 +1,35 @@
+name: Build
+
+on: [push]
+
+jobs:
+  Build:
+    runs-on:  ubuntu-18.04
+    steps:
+
+      # Checkout the code.
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+      # Install the dependencies.
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install gperf
+        sudo apt-get install help2man
+        sudo apt-get install libtool-bin
+
+      # Install the esp-open-sdk.
+    - name: Install SDK
+      run: |
+        git clone --recursive https://github.com/pfalcon/esp-open-sdk.git
+        make -C esp-open-sdk
+
+      # Compile the code.
+    - name: Compile
+      env:
+        SDK_BASE: ${GITHUB_ACTION_PATH}/esp-open-sdk/sdk
+        XTENSA_TOOLS_ROOT: ${GITHUB_ACTION_PATH}/esp-open-sdk/xtensa-lx106-elf/bin
+      run: make
